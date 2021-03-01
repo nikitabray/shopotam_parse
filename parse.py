@@ -63,21 +63,41 @@ class ToTheParse():
                     each.find('a', href=True)['href']
                 product_price = each.find('div',
                                           'product-card-price').getText()
-                if product_maker in result:
-                    result[product_maker].append({
-                        'Наименование товара': product_title,
-                        'Цена товара': product_price,
-                        'Ссылка': product_link,
-                    })
+                product_sale_price = each.find('div', 'product-card-profit')
+                if not product_sale_price:
+                    if product_maker in result:
+                        result[product_maker].append({
+                            'Наименование товара': product_title,
+                            'Цена товара': product_price,
+                            'Ссылка': product_link,
+                        })
+                    else:
+                        result[product_maker] = [{
+                            'Наименование товара': product_title,
+                            'Цена товара': product_price,
+                            'Ссылка': product_link,
+                        }]
                 else:
-                    result[product_maker] = [{
-                        'Наименование товара': product_title,
-                        'Цена товара': product_price,
-                        'Ссылка': product_link,
-                    }]
+                    if product_maker in result:
+                        result[product_maker].append({
+                            'Наименование товара': product_title,
+                            'Цена товара без скидки': product_price,
+                            'Цена товара со скидкой': product_sale_price.getText(),
+                            'Ссылка': product_link,
+                        })
+                    else:
+                        result[product_maker] = [{
+                            'Наименование товара': product_title,
+                            'Цена товара без скидки': product_price,
+                            'Цена товара со скидкой': product_sale_price.getText(),
+                            'Ссылка': product_link,
+                        }]
             print(result)
             page += 1
-        return result
+        sorted_result = {}
+        for i in sorted(result):
+            sorted_result[i] = result[i]
+        return sorted_result
 
 
 if __name__ == "__main__":
