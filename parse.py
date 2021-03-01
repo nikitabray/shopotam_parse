@@ -25,7 +25,8 @@ class ToTheParse():
         self.parser = parser
         self.url = url
 
-    def get_connection(self):
+    @staticmethod
+    def get_connection():
         headers = requests.utils.default_headers()
         headers.update({
             'User-Agent':
@@ -80,17 +81,25 @@ class ToTheParse():
                 else:
                     if product_maker in result:
                         result[product_maker].append({
-                            'Наименование товара': product_title,
-                            'Цена товара без скидки': product_price,
-                            'Цена товара со скидкой': product_sale_price.getText(),
-                            'Ссылка': product_link,
+                            'Наименование товара':
+                            product_title,
+                            'Цена товара без скидки':
+                            product_price,
+                            'Цена товара со скидкой':
+                            product_sale_price.getText(),
+                            'Ссылка':
+                            product_link,
                         })
                     else:
                         result[product_maker] = [{
-                            'Наименование товара': product_title,
-                            'Цена товара без скидки': product_price,
-                            'Цена товара со скидкой': product_sale_price.getText(),
-                            'Ссылка': product_link,
+                            'Наименование товара':
+                            product_title,
+                            'Цена товара без скидки':
+                            product_price,
+                            'Цена товара со скидкой':
+                            product_sale_price.getText(),
+                            'Ссылка':
+                            product_link,
                         }]
             print(result)
             page += 1
