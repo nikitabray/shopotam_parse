@@ -30,18 +30,16 @@ def get_categories(connection):
 
 def get_subcategories(categories_dict,
                       connection,
-                      zero_category,
+                      zero_category='',
                       ind='',
                       ind2=''):
     result = {}  #First level deep
-    ind3 = str(0)
     for first_category, second_category_list in categories_dict.items():
-        ind3 = str(int(ind3) + 1)
-        ind4 = str(0)
+        ind3 = '0'
         result[first_category] = []
         result_2 = {}  #Second level deep
         for second_category in second_category_list:
-            ind4 = str(int(ind4) + 1)
+            ind3 = str(int(ind3) + 1)
             second_category_title, second_category_link = list(
                 second_category.keys())[0], list(
                     second_category.values())[0]['Link']
@@ -62,7 +60,7 @@ def get_subcategories(categories_dict,
                 third_title = third.getText().strip()
                 print(zero_category + '/' + first_category + '/' +
                       second_category_title + '/' + third_title + '/' + ind +
-                      '/' + ind2 + '/' + ind3 + '/' + ind4)
+                      '/' + ind2 + '/' + ind3)
                 third_link = 'https://shopotam.com' + third['href']
                 result_2[second_category_title].append(
                     {third_title: {
@@ -97,25 +95,29 @@ def get_sub_subcategories_lol(third_result, connection):
 connection = ToTheParse.get_connection()
 
 try:
-    with open('categories.json', 'r') as of:
+    with open('results/categories.json', 'r') as of:
         result = json.load(of)
 except FileNotFoundError:
     result = get_categories(connection)
-    with open('categories.json', 'w') as of:
-        result = json.dump(result, of)
+    with open('results/categories.json', 'w') as of:
+        json.dump(result, of)
 
 try:
-    with open('subcategories.json', 'r') as of:
+    with open('results/subcategories.json', 'r') as of:
         subresult = json.load(of)
 except FileNotFoundError:
+    with open('results/categories.json', 'r') as of:
+        result = json.load(of)
     subresult = get_subcategories(result, connection)
-    with open('subcategories.json', 'w') as of:
-            subresult = json.dump(subresult, of)
+    with open('results/subcategories.json', 'w') as of:
+        json.dump(subresult, of)
 
 try:
-    with open('sub_subcategories.json', 'r') as of:
+    with open('results/sub_subcategories.json', 'r') as of:
         sub_subresult = json.load(of)
 except FileNotFoundError:
+    with open('results/subcategories.json', 'r') as of:
+        subresult = json.load(of)
     sub_subresult = get_sub_subcategories_lol(subresult, connection)
-    with open('sub_subcategories.json', 'w') as of:
-        sub_subresult = json.dump(sub_subresult, of)
+    with open('results/sub_subcategories.json', 'w') as of:
+        json.dump(sub_subresult, of)
