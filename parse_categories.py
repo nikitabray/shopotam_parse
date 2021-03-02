@@ -9,70 +9,113 @@ def get_categories(connection):
     doc = connection.get(url).text
     soup = BeautifulSoup(doc, 'html.parser')
     soup = soup.find('ul', 'categories')
-    result = {}
+    result = {}  #First lvl deep
     x = 1
-    for each in soup.find_all('li', 'item'):
-        category = each.find('a', href=True)
-        category_title = category.getText() + f'[{str(x)}]'
-        category_link = 'https://shopotam.com' + category['href']
-        result[category_title] = {'Link': category_link}
-        x += 1
+    for first_category in soup.find_all('li', 'category'):
+        first_category_title = first_category.find(
+            'h2', 'h5 title').getText().strip()
+        result[first_category_title] = []
+        for each in first_category.find_all('li', 'item'):
+            second_category = each.find('a', href=True)
+            second_category_title = second_category.getText()
+            second_category_link = 'https://shopotam.com' + second_category[
+                'href']
+            result[first_category_title].append(
+                {second_category_title: {
+                    'Link': second_category_link
+                }})  #Second level deep
+            x += 1
     return result
 
 
-def get_subcategories(categories_dict, connection):
-    subcategory_obj = {}
-    for category, link in categories_dict.items():
-        category_link = link['Link']
-        doc = connection.get(category_link).text
-        soup = BeautifulSoup(doc, 'html.parser')
-        active_rubric = soup.find('li', 'catalog-rubrics-item active')
-        subcategory_obj[category] = []
-        if active_rubric is None:
-            subcategory_obj[category].append(
-                {category: {
-                    'Link': category_link
-                }})
-            continue
-        rubrics = active_rubric.find_all('li', 'catalog-rubrics-item')
+def get_subcategories(categories_dict,
+                      connection,
+                      zero_category,
+                      ind='',
+                      ind2=''):
+    result = {}  #First level deep
+    ind3 = str(0)
+    for first_category, second_category_list in categories_dict.items():
+        ind3 = str(int(ind3) + 1)
+        ind4 = str(0)
+        result[first_category] = []
+        result_2 = {}  #Second level deep
+        for second_category in second_category_list:
+            ind4 = str(int(ind4) + 1)
+            second_category_title, second_category_link = list(
+                second_category.keys())[0], list(
+                    second_category.values())[0]['Link']
+            result_2[second_category_title] = []
+            doc = connection.get(second_category_link).text
+            soup = BeautifulSoup(doc, 'html.parser')
+            active_rubric = soup.find('li', 'catalog-rubrics-item active')
+            if active_rubric is None:
+                result_2[second_category_title].append(
+                    {second_category_title: {
+                        'Link': second_category_link
+                    }})
+                continue
+            rubrics = active_rubric.find_all('li', 'catalog-rubrics-item')
+            x = 1
+            for third_level_category in rubrics:
+                third = third_level_category.find('a', href=True)
+                third_title = third.getText().strip()
+                print(zero_category + '/' + first_category + '/' +
+                      second_category_title + '/' + third_title + '/' + ind +
+                      '/' + ind2 + '/' + ind3 + '/' + ind4)
+                third_link = 'https://shopotam.com' + third['href']
+                result_2[second_category_title].append(
+                    {third_title: {
+                        'Link': third_link
+                    }})
+                x += 1
+        result[first_category].append(result_2)
+    return result
 
-        x = 1
-        for rub in rubrics:
-            subcategory = rub.find('a', href=True)
-            subcategory_title = subcategory.getText().strip() + f'[{str(x)}]'
-            subcategory_link = 'https://shopotam.com' + subcategory['href']
-            subcategory_obj[category].append(
-                {subcategory_title: {
-                    'Link': subcategory_link
-                }})
-            x += 1
-        # print("-" * 40)
-        # print(subcategory_obj)
-    return subcategory_obj
 
-
-def get_sub_subcategories_lol(result, connection):
-    sub_subcategory_obj = {}
-    for subcategory, sub_subcategories in result.items():
-        sub_subcategory_obj[subcategory] = []
-        for sub_subcategory in sub_subcategories:
-            title = list(sub_subcategory.keys())[0]
-            link = list(sub_subcategory.values())[0]
-            res = get_subcategories({title: link}, connection)
-            sub_subcategory_obj[subcategory].append(res)
-        print(sub_subcategory_obj)
-    return sub_subcategory_obj
+def get_sub_subcategories_lol(third_result, connection):
+    result = {}
+    result_3 = {}
+    first_ind = 0
+    for first_category_title, second_category_list in third_result.items():
+        first_ind += 1
+        second_ind = 0
+        result[first_category_title] = []
+        result_2 = {}
+        for second_category_title, third_category_list in second_category_list[
+                0].items():
+            second_ind += 1
+            result_2[second_category_title] = []
+            result_3 = get_subcategories(
+                {second_category_title: third_category_list}, connection,
+                first_category_title, str(first_ind), str(second_ind))
+            result_2[second_category_title] = result_3[second_category_title]
+        result[first_category_title] = result_2
+    return result
 
 
 connection = ToTheParse.get_connection()
-# result = get_categories(connection)
-# subresult = get_subcategories(result, connection)
-with open('subcategories.json', 'r') as incomefile:
-    subresult = json.load(incomefile)
-sub_subresult = get_sub_subcategories_lol(subresult, connection)
 
-with open('sub_subcategories.json', 'w') as outfile:
-    json.dump(sub_subresult, outfile)
+try:
+    with open('categories.json', 'r') as of:
+        result = json.load(of)
+except FileNotFoundError:
+    result = get_categories(connection)
+    with open('categories.json', 'w') as of:
+        result = json.dump(result, of)
 
-# with open('subcategories.json', 'w') as outfile:
-#     json.dump(subresult, outfile)
+try:
+    with open('subcategories.json', 'r') as of:
+        subresult = json.load(of)
+except FileNotFoundError:
+    subresult = get_subcategories(result, connection)
+    with open('subcategories.json', 'w') as of:
+            subresult = json.dump(subresult, of)
+
+try:
+    with open('sub_subcategories.json', 'r') as of:
+        sub_subresult = json.load(of)
+except FileNotFoundError:
+    sub_subresult = get_sub_subcategories_lol(subresult, connection)
+    with open('sub_subcategories.json', 'w') as of:
+        sub_subresult = json.dump(sub_subresult, of)
