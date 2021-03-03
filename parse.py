@@ -44,13 +44,11 @@ class ToTheParse():
     def get_url_for_page(self, val):
         return f'{self.url}/page{val}'
 
-    def get_product_info(self):
-        session = self.get_connection()
+    def get_product_info(self, session, helpdict):
         result = {}
         page = 1
         while True:
             url = self.get_url_for_page(page)
-            print(url)
             resp_code, doc = self.get_document(url, session)
             if resp_code == 404:
                 break
@@ -65,6 +63,9 @@ class ToTheParse():
                 product_price = each.find('div',
                                           'product-card-price').getText()
                 product_sale_price = each.find('div', 'product-card-profit')
+                print(
+                    f'{helpdict["first_category_title"]}/{helpdict["second_category_title"]}/{helpdict["third_category_title"]}/{helpdict["fourth_category_title"]}/{helpdict["ind1"]}/{helpdict["ind2"]}/{helpdict["ind3"]}/{helpdict["ind4"]}/{page=}/{product_title}'
+                )
                 if not product_sale_price:
                     if product_maker in result:
                         result[product_maker].append({
@@ -101,7 +102,6 @@ class ToTheParse():
                             'Ссылка':
                             product_link,
                         }]
-            print(result)
             page += 1
         sorted_result = {}
         for i in sorted(result):

@@ -9,7 +9,7 @@ def get_categories(connection):
     doc = connection.get(url).text
     soup = BeautifulSoup(doc, 'html.parser')
     soup = soup.find('ul', 'categories')
-    result = {}  #First lvl deep
+    result = {}
     x = 1
     for first_category in soup.find_all('li', 'category'):
         first_category_title = first_category.find(
@@ -23,9 +23,23 @@ def get_categories(connection):
             result[first_category_title].append(
                 {second_category_title: {
                     'Link': second_category_link
-                }})  #Second level deep
+                }})
             x += 1
     return result
+
+
+def check_for_second_category(test_for_second_category, zero_category,
+                              first_category, connection):
+    for category in test_for_second_category[zero_category]:
+        if first_category in category.keys():
+            link = category[first_category]['Link']
+            doc = connection.get(link).text
+            soup = BeautifulSoup(doc, 'html.parser')
+            active_rubric = soup.find('li', 'catalog-rubrics-item active')
+            if active_rubric.find('li', 'catalog-rubrics-item active'):
+                return link, False
+            else:
+                return link, True
 
 
 def get_subcategories(categories_dict,
@@ -33,11 +47,26 @@ def get_subcategories(categories_dict,
                       zero_category='',
                       ind='',
                       ind2=''):
-    result = {}  #First level deep
+    result = {}
+    if zero_category:
+        with open('results/categories.json', 'r') as f:
+            test_for_second_category = json.load(f)
     for first_category, second_category_list in categories_dict.items():
         ind3 = '0'
         result[first_category] = []
-        result_2 = {}  #Second level deep
+        result_2 = {}
+        if zero_category:
+            link, valid = check_for_second_category(test_for_second_category,
+                                                    zero_category,
+                                                    first_category, connection)
+            if not valid:
+                result_2[first_category] = []
+                result_2[first_category].append(
+                    {first_category: {
+                        'Link': link
+                    }})
+                result[first_category].append(result_2)
+                continue
         for second_category in second_category_list:
             ind3 = str(int(ind3) + 1)
             second_category_title, second_category_link = list(
@@ -48,6 +77,12 @@ def get_subcategories(categories_dict,
             soup = BeautifulSoup(doc, 'html.parser')
             active_rubric = soup.find('li', 'catalog-rubrics-item active')
             if active_rubric is None:
+                result_2[second_category_title].append(
+                    {second_category_title: {
+                        'Link': second_category_link
+                    }})
+                continue
+            if active_rubric.find('li', 'catalog-rubrics-item active'):
                 result_2[second_category_title].append(
                     {second_category_title: {
                         'Link': second_category_link
@@ -94,30 +129,31 @@ def get_sub_subcategories_lol(third_result, connection):
 
 connection = ToTheParse.get_connection()
 
-try:
-    with open('results/categories.json', 'r') as of:
-        result = json.load(of)
-except FileNotFoundError:
-    result = get_categories(connection)
-    with open('results/categories.json', 'w') as of:
-        json.dump(result, of)
+if __name__ == "__main__":
+    try:
+        with open('results/categories.json', 'r') as of:
+            result = json.load(of)
+    except FileNotFoundError:
+        result = get_categories(connection)
+        with open('results/categories.json', 'w') as of:
+            json.dump(result, of)
 
-try:
-    with open('results/subcategories.json', 'r') as of:
-        subresult = json.load(of)
-except FileNotFoundError:
-    with open('results/categories.json', 'r') as of:
-        result = json.load(of)
-    subresult = get_subcategories(result, connection)
-    with open('results/subcategories.json', 'w') as of:
-        json.dump(subresult, of)
+    try:
+        with open('results/subcategories.json', 'r') as of:
+            subresult = json.load(of)
+    except FileNotFoundError:
+        with open('results/categories.json', 'r') as of:
+            result = json.load(of)
+        subresult = get_subcategories(result, connection)
+        with open('results/subcategories.json', 'w') as of:
+            json.dump(subresult, of)
 
-try:
-    with open('results/sub_subcategories.json', 'r') as of:
-        sub_subresult = json.load(of)
-except FileNotFoundError:
-    with open('results/subcategories.json', 'r') as of:
-        subresult = json.load(of)
-    sub_subresult = get_sub_subcategories_lol(subresult, connection)
-    with open('results/sub_subcategories.json', 'w') as of:
-        json.dump(sub_subresult, of)
+    try:
+        with open('results/sub_subcategories.json', 'r') as of:
+            sub_subresult = json.load(of)
+    except FileNotFoundError:
+        with open('results/subcategories.json', 'r') as of:
+            subresult = json.load(of)
+        sub_subresult = get_sub_subcategories_lol(subresult, connection)
+        with open('results/sub_subcategories.json', 'w') as of:
+            json.dump(sub_subresult, of)
