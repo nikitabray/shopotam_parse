@@ -36,20 +36,26 @@ class ToTheParse():
         session.headers.update(headers)
         return session
 
-    def get_document(self, url, session):
+    def get_document(self, url):
+        from parse_categories import ConnectionManager
+        session = ConnectionManager.get_connection()
         resp = session.get(url)
         doc = resp.text
         return resp.status_code, doc
 
-    def get_url_for_page(self, val):
-        return f'{self.url}/page{val}'
+    def get_url_for_page(self, url, val):
+        a = f'{url}/page{val}'
+        print(a)
+        return a
 
-    def get_product_info(self, session, helpdict):
+    def get_product_info(self, url, session, *args):
+        a, b, c, d = args
         result = {}
         page = 1
-        while True:
-            url = self.get_url_for_page(page)
-            resp_code, doc = self.get_document(url, session)
+        while True and page < 200:
+            urlnew = self.get_url_for_page(url, page)
+            resp_code, doc = self.get_document(urlnew)
+            print(resp_code)
             if resp_code == 404:
                 break
             soup = BeautifulSoup(doc, self.parser)
@@ -58,14 +64,12 @@ class ToTheParse():
                                           'product-card-title').getText()
                 product_title = each.find('div',
                                           'product-card-title-sub').getText()
+                print(f'Нашли в {a}/{b}/{c}/{d}/{page} {product_title}')
                 product_link = 'https://shopotam.com' + \
                     each.find('a', href=True)['href']
                 product_price = each.find('div',
                                           'product-card-price').getText()
                 product_sale_price = each.find('div', 'product-card-profit')
-                print(
-                    f'{helpdict["first_category_title"]}/{helpdict["second_category_title"]}/{helpdict["third_category_title"]}/{helpdict["fourth_category_title"]}/{helpdict["ind1"]}/{helpdict["ind2"]}/{helpdict["ind3"]}/{helpdict["ind4"]}/{page=}/{product_title}'
-                )
                 if not product_sale_price:
                     if product_maker in result:
                         result[product_maker].append({

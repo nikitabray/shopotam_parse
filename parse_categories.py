@@ -51,8 +51,8 @@ class FileManager():
     @staticmethod
     def check_if_file_exists(filename):
         try:
-            with open(f'result/{filename}', 'r') as f:
-                return True
+            with open(f'results/{filename}', 'r') as f:
+                return json.load(f)
         except FileNotFoundError:
             return False
 
@@ -81,7 +81,7 @@ class ParseManager():
 
     def get_categories(self, soup, category, parent='/'):
         data = {}
-        #Check if page has no subcategories
+        # Check if page has no subcategories
         check = self.check_for_double_active_category(soup)
         if check:
             data[check['title']] = check['url']
@@ -108,18 +108,29 @@ class ParseManager():
         except AttributeError:
             return False
 
+    @staticmethod
+    def is_dict(value):
+        try:
+            for d in value.keys():
+                if type(value[d]) is dict:
+                    return True
+        except AttributeError:
+            return False
+
     def cycle(self, data, level):
         temp_data = {}
-        for category_title in data:
-            category_url = data[category_title]
-            if type(category_url) == dict:
-                temp_data[category_title] = self.cycle(category_url, level)
-                continue
-            connection = ConnectionManager.get_connection()
-            doc = DocumentManager.get_document(connection, category_url)
-            soup = BeautifulSoupManager.beautify(doc)
-            temp_data[category_title] = self.get_categories(
-                soup, level, category_title)
+        if self.is_dict(data):
+            for k in data:
+                val = data[k]
+                temp_data[k] = self.cycle(val, level)
+        else:
+            for category_title in data:
+                category_url = data[category_title]
+                connection = ConnectionManager.get_connection()
+                doc = DocumentManager.get_document(connection, category_url)
+                soup = BeautifulSoupManager.beautify(doc)
+                temp_data[category_title] = self.get_categories(
+                    soup, level, category_title)
         return temp_data
 
     def organize_data(self, start_point_soup):
@@ -139,12 +150,22 @@ class ParseManager():
             data[item] = data_second[item]
 
 
+class ConnectGetSoup(ConnectionManager, DocumentManager, BeautifulSoupManager):
+    @classmethod
+    def do_magick(cls):
+        conn = cls.get_connection()
+        doc = cls.get_document(conn, url)
+        return cls.beautify(doc)
 
-patterns = PatternManager.get_patterns()
-conn = ConnectionManager.get_connection()
-doc = DocumentManager.get_document(conn, 'https://shopotam.com/rubrics')
-doc = DocumentManager.get_document(
-    conn, 'https://shopotam.com/rubrics')
-soup = BeautifulSoupManager.beautify(doc)
-print(ParseManager(soup, patterns).organize_data(soup))
 
+if __name__ == '__main__':
+    patterns = PatternManager.get_patterns()
+    conn = ConnectionManager.get_connection()
+    doc = DocumentManager.get_document(conn, 'https://shopotam.com/rubrics')
+    soup = BeautifulSoupManager.beautify(doc)
+    a = 'fourth.json'
+    data = FileManager.check_if_file_exists('fourth.json')
+    if data:
+        Pa
+    else:
+        ParseManager(soup, patterns).organize_data(soup)
