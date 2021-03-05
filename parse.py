@@ -36,13 +36,13 @@ class ToTheParse():
         print(a)
         return a
 
-    def check_if_page_exists(resp_code):
+    def check_if_page_exists(self, resp_code):
         if resp_code == 404:
             return False
         else:
             return True
 
-    def get_pattern(tp='non-technic'):
+    def get_pattern(self, tp='non-technic'):
         patterns = {
             'non-technic': {
                 'block': ['li', 'product'],
@@ -74,7 +74,9 @@ class ToTheParse():
         product_link = 'https://shopotam.com' + \
             soup.find('a', href=True)['href']
         product_price = soup.find(*patterns['price']).getText()
-        product_price_on_sale = soup.find(*patterns['price_on_sale']).getText()
+        product_price_on_sale = soup.find(*patterns['price_on_sale'])
+        if product_price_on_sale:
+            product_price_on_sale = product_price_on_sale.getText()
         return [
             product_maker,
             product_title,
@@ -117,6 +119,7 @@ class ToTheParse():
             soup = BeautifulSoup(doc, self.parser)
             for each in soup.find_all(*self.get_pattern()['block']):
                 tp = self.get_product_categoty_type(each)
+                print(tp)
                 maker, title, link, price, sale_price = self.search_by_patterns(
                     each, tp)
                 packed_data = self.pack_it(
