@@ -1,18 +1,6 @@
 from bs4 import BeautifulSoup
 import requests
 import json
-import time
-
-
-class GetUrl():
-    def __init__(self, *args, **kwargs):
-        self.url = input("Введите url категории: ")
-
-    def get_url(self):
-        if self.url:
-            return self.url
-        else:
-            return 'https://shopotam.com/odezhda-i-obuv/zhenshchinam/bele-i-kupalniki/kupalniki'
 
 
 class ToTheParse():
@@ -48,79 +36,99 @@ class ToTheParse():
         print(a)
         return a
 
+    def check_if_page_exists(resp_code):
+        if resp_code == 404:
+            return False
+        else:
+            return True
+
+    def get_pattern(tp='non-technic'):
+        patterns = {
+            'non-technic': {
+                'block': ['li', 'product'],
+                'maker': ['div', 'product-card-title'],
+                'title': ['div', 'product-card-title-sub'],
+                'price': ['div', 'product-card-price'],
+                'price_on_sale': ['div', 'product-card-profit'],
+            },
+            'technic': {
+                'block': ['li', 'product'],
+                'maker': ['div', 'product-card-features-title'],
+                'title': ['div', 'product-card-title'],
+                'price': ['div', 'product-card-price'],
+                'price_on_sale': ['div', 'product-card-profit'],
+            }
+        }
+        return patterns[tp]
+
+    def get_product_categoty_type(self, soup):
+        if soup.find(*self.get_pattern('technic')['maker']):
+            return 'technic'
+        else:
+            return 'non-technic'
+
+    def search_by_patterns(self, soup, tp):
+        patterns = self.get_pattern(tp)
+        product_maker = soup.find(*patterns['maker']).getText()
+        product_title = soup.find(*patterns['title']).getText()
+        product_link = 'https://shopotam.com' + \
+            soup.find('a', href=True)['href']
+        product_price = soup.find(*patterns['price']).getText()
+        product_price_on_sale = soup.find(*patterns['price_on_sale']).getText()
+        return [
+            product_maker,
+            product_title,
+            product_link,
+            product_price,
+            product_price_on_sale
+        ]
+
+    def pack_it(self, *args):
+        maker, title, link, price, sale_price = args
+        res = {}
+        if sale_price:
+            res[maker] = [
+                {
+                    '': title,
+                    '': price,
+                    '': sale_price,
+                    '': link,
+                }
+            ]
+        else:
+            res[maker] = [
+                {
+                    '': title,
+                    '': price,
+                    '': link,
+                }
+            ]
+        return res
+
     def get_product_info(self, url, session, *args):
         a, b, c, d = args
         result = {}
         page = 1
-        while True and page < 200:
+        while True and page < 120:
             urlnew = self.get_url_for_page(url, page)
             resp_code, doc = self.get_document(urlnew)
-            print(resp_code)
-            if resp_code == 404:
+            if not check_if_page_exists(resp_code):
                 break
             soup = BeautifulSoup(doc, self.parser)
-            for each in soup.find_all('div', 'product-card'):
-                product_maker = each.find('div',
-                                          'product-card-title').getText()
-                product_title = each.find('div',
-                                          'product-card-title-sub').getText()
-                print(f'Нашли в {a}/{b}/{c}/{d}/{page} {product_title}')
-                product_link = 'https://shopotam.com' + \
-                    each.find('a', href=True)['href']
-                product_price = each.find('div',
-                                          'product-card-price').getText()
-                product_sale_price = each.find('div', 'product-card-profit')
-                if not product_sale_price:
-                    if product_maker in result:
-                        result[product_maker].append({
-                            'Наименование товара': product_title,
-                            'Цена товара': product_price,
-                            'Ссылка': product_link,
-                        })
-                    else:
-                        result[product_maker] = [{
-                            'Наименование товара': product_title,
-                            'Цена товара': product_price,
-                            'Ссылка': product_link,
-                        }]
+            for each in soup.find_all(*self.get_pattern()['block']):
+                tp = self.get_product_categoty_type(each)
+                maker, title, link, price, sale_price = self.search_by_patterns(
+                    each, tp)
+                packed_data = self.pack_it(
+                    maker, title, link, price, sale_price)
+                print(f'Нашли в {a}/{b}/{c}/{d}/{page} {title}')
+                if maker in result:
+                    result[maker].append(packed_data)
                 else:
-                    if product_maker in result:
-                        result[product_maker].append({
-                            'Наименование товара':
-                            product_title,
-                            'Цена товара без скидки':
-                            product_price,
-                            'Цена товара со скидкой':
-                            product_sale_price.getText(),
-                            'Ссылка':
-                            product_link,
-                        })
-                    else:
-                        result[product_maker] = [{
-                            'Наименование товара':
-                            product_title,
-                            'Цена товара без скидки':
-                            product_price,
-                            'Цена товара со скидкой':
-                            product_sale_price.getText(),
-                            'Ссылка':
-                            product_link,
-                        }]
+                    result[maker] = packed_data[maker]
             page += 1
         sorted_result = {}
         for i in sorted(result):
             sorted_result[i] = result[i]
         return sorted_result
 
-
-if __name__ == "__main__":
-    url_class = GetUrl()
-    avito = ToTheParse(url_class.get_url())
-    a = avito.get_product_info()
-    filename = input(
-        'Введите название для файла (без расширения), куда программа сохранит данные: '
-    )
-    if not filename:
-        filename = 'result'
-    with open(filename + '.json', 'w') as outfile:
-        json.dump(a, outfile)

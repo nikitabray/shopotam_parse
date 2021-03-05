@@ -166,6 +166,6 @@ if __name__ == '__main__':
     a = 'fourth.json'
     data = FileManager.check_if_file_exists('fourth.json')
     if data:
-        Pa
+        pass
     else:
         ParseManager(soup, patterns).organize_data(soup)
