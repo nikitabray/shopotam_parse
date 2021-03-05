@@ -91,18 +91,18 @@ class ToTheParse():
         if sale_price:
             res[maker] = [
                 {
-                    '': title,
-                    '': price,
-                    '': sale_price,
-                    '': link,
+                    'Наименование': title,
+                    'Цена без скидки': price,
+                    'Цена со скидкой': sale_price,
+                    'Ссылка': link,
                 }
             ]
         else:
             res[maker] = [
                 {
-                    '': title,
-                    '': price,
-                    '': link,
+                    'Наименование': title,
+                    'Цена': price,
+                    'Ссылка': link,
                 }
             ]
         return res
