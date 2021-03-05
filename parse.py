@@ -112,7 +112,7 @@ class ToTheParse():
         while True and page < 120:
             urlnew = self.get_url_for_page(url, page)
             resp_code, doc = self.get_document(urlnew)
-            if not check_if_page_exists(resp_code):
+            if not self.check_if_page_exists(resp_code):
                 break
             soup = BeautifulSoup(doc, self.parser)
             for each in soup.find_all(*self.get_pattern()['block']):
